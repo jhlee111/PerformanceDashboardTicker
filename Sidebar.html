@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+        color: #333;
+      }
+      .container {
+        max-width: 100%;
+      }
+      .header {
+        background-color: #f3f9ff;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #4285f4;
+      }
+      .section {
+        background-color: #fff;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid #e0e0e0;
+      }
+      h3 {
+        margin-top: 0;
+        color: #1a3370;
+      }
+      .btn {
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+      .btn:hover {
+        background-color: #3367d6;
+      }
+      .btn-secondary {
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ccc;
+      }
+      .btn-secondary:hover {
+        background-color: #e7e7e7;
+      }
+      .input-group {
+        margin-bottom: 10px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        font-size: 12px;
+        color: #555;
+      }
+      input, select {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .status {
+        padding: 8px;
+        border-radius: 4px;
+        margin-top: 10px;
+        font-size: 13px;
+        display: none;
+      }
+      .success {
+        background-color: #e6f4ea;
+        color: #137333;
+      }
+      .error {
+        background-color: #fce8e6;
+        color: #c5221f;
+      }
+      .info {
+        background-color: #e8f0fe;
+        color: #1967d2;
+      }
+      .timezone-info {
+        font-size: 11px;
+        color: #666;
+        margin-top: 5px;
+        font-style: italic;
+      }
+      .checkbox-group {
+        margin-top: 10px;
+      }
+      .checkbox-label {
+        font-weight: normal;
+        display: flex;
+        align-items: center;
+        font-size: 13px;
+      }
+      .checkbox-input {
+        width: auto;
+        margin-right: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h3>성과 대시보드 관리</h3>
+        <p>이 사이드바에서 대시보드를 업데이트하고 설정을 관리하세요.</p>
+      </div>
+      
+      <!-- Dashboard update section -->
+      <div class="section">
+        <h3>대시보드 업데이트</h3>
+        <p>최신 데이터로 대시보드를 업데이트하려면 아래 버튼을 클릭하세요.</p>
+        
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="adjustBusinessDay" class="checkbox-input" checked>
+            영업일 자동 조정 (주말/공휴일 → 마지막 영업일)
+          </label>
+        </div>
+        
+        <button class="btn" id="updateButton">대시보드 업데이트</button>
+        <div id="updateStatus" class="status"></div>
+      </div>
+      
+      <!-- Reference date section -->
+      <div class="section">
+        <h3>참조 날짜 설정</h3>
+        <div class="input-group">
+          <label for="referenceDate">기준일자 (YYYY-MM-DD)</label>
+          <input type="date" id="referenceDate" placeholder="YYYY-MM-DD">
+          <div class="timezone-info">* 한국 시간(KST) 기준 (UTC+9)</div>
+        </div>
+        <button class="btn" id="setDateButton">날짜 적용</button>
+        <div id="dateStatus" class="status"></div>
+        <span id="dateLoading" style="display: none;">⏳ 로딩 중...</span>
+      </div>
+      
+      <!-- Lookup section -->
+      <div class="section">
+        <h3>티커 조회</h3>
+        <div class="input-group">
+          <label for="symbol">심볼</label>
+          <input type="text" id="symbol" placeholder="예: KOSPI, 005930, AAPL">
+        </div>
+        <div class="input-group">
+          <label for="source">데이터 소스</label>
+          <select id="source">
+            <option value="naver">네이버 파이낸스</option>
+            <option value="yahoo">야후 파이낸스</option>
+            <option value="google">구글 파이낸스</option>
+          </select>
+        </div>
+        <button class="btn" id="lookupButton">조회</button>
+        <div id="lookupStatus" class="status"></div>
+        <div id="lookupResult" style="margin-top: 10px; font-size: 13px;"></div>
+      </div>
+    </div>
+    
+    <script>
+      // Load the current reference date when the sidebar loads
+      window.onload = function() {
+        loadCurrentReferenceDate();
+      };
+      
+      // Load the current reference date
+      function loadCurrentReferenceDate() {
+        document.getElementById('dateLoading').style.display = 'inline';
+        document.getElementById('dateStatus').textContent = '';
+        
+        google.script.run
+          .withSuccessHandler(function(dateStr) {
+            document.getElementById('dateLoading').style.display = 'none';
+            document.getElementById('referenceDate').value = dateStr || '';
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('dateLoading').style.display = 'none';
+            document.getElementById('dateStatus').textContent = '날짜를 불러오는 중 오류가 발생했습니다.';
+            console.error('날짜 로드 오류:', error);
+          })
+          .getCurrentReferenceDate();
+      }
+      
+      // Handle update button click
+      document.getElementById('updateButton').addEventListener('click', function() {
+        showStatus('updateStatus', '대시보드 업데이트 중...', 'info');
+        
+        // Get business day adjustment setting
+        const adjustBusinessDay = document.getElementById('adjustBusinessDay').checked;
+        
+        google.script.run
+          .withSuccessHandler(function() {
+            showStatus('updateStatus', '대시보드가 성공적으로 업데이트되었습니다!', 'success');
+            loadCurrentReferenceDate(); // Reload date in case it was adjusted
+          })
+          .withFailureHandler(function(error) {
+            showStatus('updateStatus', '오류: ' + error, 'error');
+          })
+          .updatePerformanceDashboard(adjustBusinessDay);
+      });
+      
+      // Handle set date button click
+      document.getElementById('setDateButton').addEventListener('click', function() {
+        setReferenceDate();
+      });
+      
+      // Handle lookup button click
+      document.getElementById('lookupButton').addEventListener('click', function() {
+        const symbol = document.getElementById('symbol').value;
+        const source = document.getElementById('source').value;
+        
+        if (!symbol) {
+          showStatus('lookupStatus', '심볼을 입력하세요', 'error');
+          return;
+        }
+        
+        showStatus('lookupStatus', '데이터 조회 중...', 'info');
+        document.getElementById('lookupResult').innerHTML = '';
+        
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.error) {
+              showStatus('lookupStatus', '오류: ' + result.error, 'error');
+              return;
+            }
+            
+            showStatus('lookupStatus', '조회 완료', 'success');
+            
+            // Format the result
+            let html = '<div style="padding: 10px; background-color: #f8f9fa; border-radius: 4px;">';
+            html += `<div style="font-weight: bold; margin-bottom: 5px;">${result.symbol} (${source})</div>`;
+            html += `<div>현재가: ${result.current}</div>`;
+            html += `<div>52주 고점: ${result.high}</div>`;
+            html += `<div>주간 수익률: ${result.weekly}</div>`;
+            html += `<div>월간 수익률: ${result.monthly}</div>`;
+            html += `<div>YTD 수익률: ${result.ytd}</div>`;
+            html += '</div>';
+            
+            document.getElementById('lookupResult').innerHTML = html;
+          })
+          .withFailureHandler(function(error) {
+            showStatus('lookupStatus', '오류: ' + error, 'error');
+          })
+          .lookupSymbol(symbol, source);
+      });
+      
+      // Helper function to show status messages
+      function showStatus(elementId, message, type) {
+        const element = document.getElementById(elementId);
+        element.textContent = message;
+        element.className = 'status ' + type;
+        element.style.display = 'block';
+        
+        // Hide success/info messages after 5 seconds
+        if (type === 'success' || type === 'info') {
+          setTimeout(function() {
+            element.style.display = 'none';
+          }, 5000);
+        }
+      }
+      
+      // Set a new reference date
+      function setReferenceDate() {
+        const dateInput = document.getElementById('referenceDate');
+        const dateStr = dateInput.value;
+        
+        // Show loading spinner and clear previous status
+        document.getElementById('dateLoading').style.display = 'inline';
+        document.getElementById('dateStatus').textContent = '';
+        
+        // Validate date format (YYYY-MM-DD)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          document.getElementById('dateLoading').style.display = 'none';
+          document.getElementById('dateStatus').textContent = '유효하지 않은 날짜 형식입니다. YYYY-MM-DD 형식을 사용하세요.';
+          return;
+        }
+        
+        // Call the server-side function
+        google.script.run
+          .withSuccessHandler(function(result) {
+            document.getElementById('dateLoading').style.display = 'none';
+            if (result.success) {
+              document.getElementById('dateStatus').textContent = result.message;
+              document.getElementById('dateStatus').className = 'success';
+              // Update the input with the properly formatted date
+              document.getElementById('referenceDate').value = result.date;
+            } else {
+              document.getElementById('dateStatus').textContent = result.message;
+              document.getElementById('dateStatus').className = 'error';
+            }
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('dateLoading').style.display = 'none';
+            document.getElementById('dateStatus').textContent = '날짜를 설정하는 중 오류가 발생했습니다: ' + error.message;
+            document.getElementById('dateStatus').className = 'error';
+          })
+          .setReferenceDate(dateStr);
+      }
+    </script>
+  </body>
+</html> 
