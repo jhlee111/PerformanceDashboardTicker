@@ -1,59 +1,139 @@
 # Performance Dashboard Ticker
 
-A Google Apps Script project that creates a performance dashboard for tracking various financial indices, stocks, and their returns over different time periods.
+A Google Apps Script project that creates a real-time performance dashboard for tracking financial indices and stocks from multiple markets. This dashboard calculates and displays various return metrics and supports data retrieval from different sources with advanced date handling across time zones.
 
 ## Overview
 
-This project is built to run in Google Sheets and provides functionality to:
+This project is built to run in Google Sheets and provides the following features:
 
-- Track multiple financial indices and stocks from various sources (Google Finance, Yahoo Finance, Naver Finance)
+- Track financial indices and stocks from multiple sources (Google Finance, Yahoo Finance, Naver Finance)
 - Calculate and display performance metrics:
   - Weekly returns
   - Monthly returns
   - Year-to-date (YTD) returns
   - Returns compared to 52-week high
+- Intelligent market awareness with time zone and trading hour support
+- Race condition prevention with script locking
+- Comprehensive error handling and user feedback
+- User-friendly UI with detailed help documentation
+- Diagnostic tools for troubleshooting
 
-## File Structure
+## Current File Structure
 
-The codebase is organized into multiple files for better separation of concerns:
+The codebase has been refactored and is now organized into a more maintainable structure:
 
-- **Config.js**: Contains configuration constants and global variables
-- **Code.js**: Main application logic and entry points
-- **DateUtils.js**: Date calculation utilities
-- **DataProviders.js**: Data provider classes for different finance sources
-- **tickers.js**: Functions for retrieving and parsing ticker data
+- **main.js**: Entry point and initialization
+- **Config.js**: Configuration settings, constants, and utility functions
+- **ui/**
+  - **Dialogs.js**: UI dialog-related functionality
+  - **Sidebar.js**: Sidebar-related functionality
+  - **Sidebar.html**: HTML interface for the sidebar
+- **services/**
+  - **DashboardService.js**: Core dashboard functionality
+  - **TickerService.js**: Ticker-related functionality
+  - **PriceService.js**: Price retrieval and calculation
+  - **providers/**
+    - **BaseProvider.js**: Abstract base class for data providers
+    - **ProviderFactory.js**: Factory for creating data providers
+    - **GoogleProvider.js**: Google Finance data retrieval
+    - **YahooProvider.js**: Yahoo Finance data retrieval
+    - **NaverProvider.js**: Naver Finance data retrieval
+- **utils/**
+  - **DateUtils.js**: Date manipulation and market time management
+  - **SpreadsheetUtils.js**: Spreadsheet utility functions
+  - **LockService.js**: Script locking functionality
+  - **Logger.js**: Enhanced logging functionality
+- **diagnostics/**
+  - **DiagnosticTools.js**: Diagnostic functionality
+- **__tests__/**
+  - **integration/**: Integration tests
+    - **naverKosdaqPlaywright.test.js**: PlayWright test for KOSDAQ data
+    - **naverKosdaqFetcher.test.js**: API fetcher test for KOSDAQ data
+  - **mocks/**: Test mocks
+  - **services/**: Service unit tests
+- **appsscript.json**: Project configuration file
 
-## Setup
+## Main Components
 
-1. Open your Google Sheet
-2. Set up two sheets:
-   - Main sheet: For displaying the performance dashboard
+### Core Classes
+
+1. **DateCalculator**: Handles date calculations for historical returns
+2. **MarketTimeManager**: Manages market-specific dates and trading hours
+3. **DataProviderFactory**: Creates appropriate data providers based on the source
+4. **GoogleFinanceProvider/YahooFinanceProvider/NaverFinanceProvider**: Source-specific data retrieval
+
+### Key Functions
+
+1. **updatePerformanceDashboard()**: Main entry point for updating the dashboard
+2. **processTickers()**: Processes each ticker for display
+3. **calculateReturns()**: Calculates performance metrics
+4. **getReferenceDate()**: Gets the reference date for calculations
+5. **showReferenceDateDialog()**: UI for setting the reference date
+6. **showTickerManager()**: UI for managing tickers
+7. **showHelp()**: Displays help documentation
+
+### UI Entry Points
+
+1. Menu items from **onOpen()** function:
+   - Dashboard Update
+   - Reference Date Settings
+   - Ticker Management
+   - Diagnostic Tools
+   - Help
+
+## Current Status
+
+The codebase has been successfully refactored from a monolithic structure into a more maintainable organization with proper separation of concerns:
+
+- Code is now organized by feature and responsibility in smaller, focused modules
+- Data providers have been enhanced with improved error handling and fallback mechanisms
+- Integration tests help ensure data retrieval reliability
+- Main components now have consistent interfaces and naming conventions
+- Provider factory pattern allows for easier extension with new data sources
+
+### Ongoing Improvements
+
+While major refactoring has been completed, these areas continue to be enhanced:
+
+1. **Testing**: Adding more unit tests for individual services and utilities
+2. **Error Handling**: Further improving error handling and user feedback for edge cases
+3. **Documentation**: Enhancing inline documentation for complex methods
+4. **Performance**: Fine-tuning request patterns to reduce API calls
+
+## Implementation Highlights
+
+The refactored implementation includes these key improvements:
+
+1. **Provider System**: Flexible provider system with a factory pattern for extensibility
+2. **Advanced KOSDAQ Handling**: Specialized methods for Korean market indices like KOSDAQ
+3. **Multi-tier Fallbacks**: Every provider includes multiple fallback mechanisms for reliability
+4. **Enhanced Date Handling**: Sophisticated date calculations with market-aware adjustments
+5. **Integration Testing**: PlayWright and API-based tests to validate end-to-end functionality
+
+## Setup and Usage
+
+1. Create a Google Sheet with the following structure:
+   - "dashboard" sheet: For displaying the performance dashboard
    - "tickers" sheet: For configuring the indices/stocks to track
 
-3. In the "tickers" sheet, create columns for:
-   - Name (Display name for the index/stock)
-   - Ticker (Symbol used by the data source)
-   - Source (One of: "google", "yahoo", or "naver")
+2. In the "tickers" sheet, add columns:
+   - Name: Display name for the index/stock
+   - Ticker: Symbol used by the data source
+   - Source: One of: "google", "yahoo", or "naver"
 
-4. In cell A1 of the main sheet, enter a reference date for calculations
-
-## Usage
-
-Run the `createStockTable()` function to generate the performance table. The script will:
-
-1. Read the reference date from cell A1
-2. Get the list of tickers from the "tickers" sheet
-3. Fetch current and historical prices for each ticker
-4. Calculate performance metrics
-5. Render the results in the main sheet
+3. Use the menu items to manage the dashboard:
+   - Update the dashboard to retrieve the latest data
+   - Set a reference date for calculations
+   - Manage tickers for tracking
+   - View help documentation
 
 ## Data Sources
 
 The script supports three data sources:
 
-- Google Finance: Uses the GOOGLEFINANCE function
-- Yahoo Finance: Fetches data via Yahoo Finance API
-- Naver Finance: Scrapes data from Naver Finance website (Korean market indices)
+- **Google Finance**: Uses GOOGLEFINANCE function
+- **Yahoo Finance**: Fetches data via Yahoo Finance APIs
+- **Naver Finance**: Fetches data from Naver Finance (Korean markets)
 
 ## Development
 
@@ -65,6 +145,17 @@ To work with this code locally:
 2. Clone the project: `clasp clone <scriptId>`
 3. Make changes locally
 4. Push changes: `clasp push`
+
+## Running Integration Tests
+
+The project includes integration tests to verify data provider functionality, especially for challenging sources like KOSDAQ data. To run these tests:
+
+### PlayWright Tests
+
+1. Install PlayWright CLI: `npm install -g playwright`
+2. Run the KOSDAQ test: `node __tests__/integration/naverKosdaqPlaywright.test.js`
+
+These tests are valuable for diagnosing issues when the data providers stop working due to source website changes. They help understand the correct API endpoints and response formats to implement in the provider classes.
 
 ## File Execution Order in Google Apps Script
 
@@ -86,6 +177,24 @@ This ensures that dependencies are properly loaded before they're used.
 - `calculateReturn()`: Calculates percentage return between two prices
 
 ## Recent Updates
+
+### May 2025 - KOSDAQ Data Retrieval Improvements
+
+The following improvements have been made to the KOSDAQ index data retrieval:
+
+1. **Naver Finance Provider**:
+   - Implemented specialized method for KOSDAQ historical data retrieval based on Playwright test insights
+   - Updated the API endpoint format from `?pageSize=${apiPageSize}&page=1&type=index` to `?timeframe=${timeframe}`
+   - Added proper timeframe parameters (1d, 3m, 6m, 1y) based on the historical data range needed
+   - Added additional fallback mechanisms for data access:
+     - Chart API endpoint as a secondary data source
+     - Improved estimation methods when API data is unavailable
+   - Enhanced logging for better debugging of API responses
+
+2. **Integration Testing**:
+   - Added Playwright-based integration test `naverKosdaqPlaywright.test.js` to validate KOSDAQ historical data fetching
+   - This test directly accesses Naver's mobile site to confirm API endpoint structures and response formats
+   - Test validates weekly, monthly, and YTD prices against current values
 
 ### March 2025 - Data Provider Fixes
 

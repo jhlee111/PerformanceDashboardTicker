@@ -12,9 +12,10 @@ var CONFIG = {
    * Sheet names and references
    */
   SHEETS: {
-    DASHBOARD: "dashboard",  // Main dashboard display sheet
-    TICKERS: "tickers",      // Sheet containing ticker definitions
-    TEMP: "temp_calc"        // Hidden sheet for temporary calculations
+    DASHBOARD: "Dashboard",  // Main dashboard display sheet
+    TICKERS: "Tickers",      // Sheet containing ticker definitions
+    TEMP: "TempCalc",        // Hidden sheet for temporary calculations
+    AUDIT: "Audit"           // Added for audit purposes
   },
   
   /**
@@ -25,6 +26,22 @@ var CONFIG = {
     DATA_RANGE_START: "A3",
     HEADER_ROW: 2,
     DATA_RANGE_END: "F"      // Ending column for data display
+  },
+  
+  /**
+   * Dashboard specific settings
+   */
+  DASHBOARD: {
+    INFO_ROW: 1,             // Row for info/status messages
+    INFO_COL: 1,             // Column for info/status messages
+    HEADER_ROW: 2,           // Header row index
+    DATA_START_ROW: 3,       // Starting row for data display
+    TICKER_COL: 1,           // Column for ticker symbols
+    NAME_COL: 2,             // Column for ticker names
+    CURRENT_PRICE_COL: 3,    // Column for current prices
+    WEEKLY_COL: 4,           // Column for weekly returns
+    MONTHLY_COL: 5,          // Column for monthly returns
+    YTD_COL: 6               // Column for year-to-date returns
   },
   
   /**
@@ -71,10 +88,10 @@ var CONFIG = {
   }
 };
 
-/**
- * Global spreadsheet instance
- */
-var SS = SpreadsheetApp.getActiveSpreadsheet();
+// Get a reference to the active spreadsheet if we don't already have one
+if (typeof SS === 'undefined') {
+  var SS = SpreadsheetApp.getActiveSpreadsheet();
+}
 
 /**
  * Get the reference date value safely from script properties

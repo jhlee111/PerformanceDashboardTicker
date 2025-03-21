@@ -107,6 +107,17 @@
         width: auto;
         margin-right: 8px;
       }
+      
+      /* Reference date styles */
+      .date-section {
+        background-color: #f8f9fa;
+        border-left: 4px solid #fbbc04;
+      }
+      .current-reference-date {
+        font-weight: bold;
+        color: #1a73e8;
+        margin-bottom: 10px;
+      }
     </style>
   </head>
   <body>
@@ -114,6 +125,23 @@
       <div class="header">
         <h3>성과 대시보드 관리</h3>
         <p>이 사이드바에서 대시보드를 업데이트하고 설정을 관리하세요.</p>
+      </div>
+      
+      <!-- Reference Date Section -->
+      <div class="section date-section" id="dateSection">
+        <h3>기준일 설정</h3>
+        <div class="current-reference-date" id="currentReferenceDate">현재 기준일: 로딩 중...</div>
+        
+        <div class="input-group">
+          <label for="referenceDate">새 기준일 선택:</label>
+          <input type="date" id="referenceDate" name="referenceDate">
+          <div class="timezone-info">시간대: 한국 표준시 (GMT+9)</div>
+        </div>
+        
+        <button class="btn" onclick="setReferenceDate()">기준일 적용</button>
+        <button class="btn btn-secondary" onclick="resetToCurrentDate()">오늘로 재설정</button>
+        
+        <div id="referenceDateStatus" class="status"></div>
       </div>
       
       <!-- Dashboard update section -->
@@ -130,19 +158,6 @@
         
         <button class="btn" id="updateButton">대시보드 업데이트</button>
         <div id="updateStatus" class="status"></div>
-      </div>
-      
-      <!-- Reference date section -->
-      <div class="section">
-        <h3>참조 날짜 설정</h3>
-        <div class="input-group">
-          <label for="referenceDate">기준일자 (YYYY-MM-DD)</label>
-          <input type="date" id="referenceDate" placeholder="YYYY-MM-DD">
-          <div class="timezone-info">* 한국 시간(KST) 기준 (UTC+9)</div>
-        </div>
-        <button class="btn" id="setDateButton">날짜 적용</button>
-        <div id="dateStatus" class="status"></div>
-        <span id="dateLoading" style="display: none;">⏳ 로딩 중...</span>
       </div>
       
       <!-- Lookup section -->
@@ -167,27 +182,97 @@
     </div>
     
     <script>
-      // Load the current reference date when the sidebar loads
+      /**
+       * Initialize the sidebar
+       */
       window.onload = function() {
         loadCurrentReferenceDate();
       };
       
-      // Load the current reference date
+      /**
+       * Load the current reference date from the server
+       */
       function loadCurrentReferenceDate() {
-        document.getElementById('dateLoading').style.display = 'inline';
-        document.getElementById('dateStatus').textContent = '';
+        google.script.run
+          .withSuccessHandler(displayCurrentReferenceDate)
+          .withFailureHandler(handleError)
+          .getCurrentReferenceDate();
+      }
+      
+      // Display the current reference date
+      function displayCurrentReferenceDate(dateString) {
+        const element = document.getElementById('currentReferenceDate');
+        if (element) {
+          element.innerHTML = '현재 기준일: ' + dateString;
+          
+          // Set the date input to the current reference date
+          const dateParts = dateString.split('-');
+          if (dateParts.length === 3) {
+            const formattedDate = dateParts[0] + '-' + dateParts[1] + '-' + dateParts[2];
+            document.getElementById('referenceDate').value = formattedDate;
+          }
+        }
+      }
+      
+      // Set a new reference date
+      function setReferenceDate() {
+        const dateInput = document.getElementById('referenceDate').value;
+        if (!dateInput) {
+          showStatus('referenceDateStatus', '기준일을 선택해주세요.', 'error');
+          return;
+        }
+        
+        showStatus('referenceDateStatus', '기준일 설정 중...', 'info');
         
         google.script.run
-          .withSuccessHandler(function(dateStr) {
-            document.getElementById('dateLoading').style.display = 'none';
-            document.getElementById('referenceDate').value = dateStr || '';
-          })
-          .withFailureHandler(function(error) {
-            document.getElementById('dateLoading').style.display = 'none';
-            document.getElementById('dateStatus').textContent = '날짜를 불러오는 중 오류가 발생했습니다.';
-            console.error('날짜 로드 오류:', error);
-          })
-          .getCurrentReferenceDate();
+          .withSuccessHandler(onReferenceDateSet)
+          .withFailureHandler(handleDateError)
+          .setReferenceDate(dateInput);
+      }
+      
+      // Reset to current date
+      function resetToCurrentDate() {
+        showStatus('referenceDateStatus', '오늘 날짜로 재설정 중...', 'info');
+        
+        google.script.run
+          .withSuccessHandler(onReferenceDateSet)
+          .withFailureHandler(handleDateError)
+          .resetReferenceDate();
+      }
+      
+      // Handle successful reference date set
+      function onReferenceDateSet(result) {
+        if (result.success) {
+          showStatus('referenceDateStatus', '기준일이 설정되었습니다: ' + result.date, 'success');
+          displayCurrentReferenceDate(result.date);
+        } else {
+          showStatus('referenceDateStatus', '기준일 설정 실패: ' + result.message, 'error');
+        }
+      }
+      
+      // Handle reference date error
+      function handleDateError(error) {
+        showStatus('referenceDateStatus', '기준일 설정 오류: ' + error.message, 'error');
+      }
+      
+      // Handle general error
+      function handleError(error) {
+        console.error('Error:', error);
+      }
+      
+      // Show status message
+      function showStatus(elementId, message, type) {
+        const statusElement = document.getElementById(elementId);
+        if (statusElement) {
+          statusElement.textContent = message;
+          statusElement.className = 'status ' + type;
+          statusElement.style.display = 'block';
+          
+          // Hide the status message after 5 seconds
+          setTimeout(function() {
+            statusElement.style.display = 'none';
+          }, 5000);
+        }
       }
       
       // Handle update button click
@@ -206,11 +291,6 @@
             showStatus('updateStatus', '오류: ' + error, 'error');
           })
           .updatePerformanceDashboard(adjustBusinessDay);
-      });
-      
-      // Handle set date button click
-      document.getElementById('setDateButton').addEventListener('click', function() {
-        setReferenceDate();
       });
       
       // Handle lookup button click
@@ -252,59 +332,6 @@
           })
           .lookupSymbol(symbol, source);
       });
-      
-      // Helper function to show status messages
-      function showStatus(elementId, message, type) {
-        const element = document.getElementById(elementId);
-        element.textContent = message;
-        element.className = 'status ' + type;
-        element.style.display = 'block';
-        
-        // Hide success/info messages after 5 seconds
-        if (type === 'success' || type === 'info') {
-          setTimeout(function() {
-            element.style.display = 'none';
-          }, 5000);
-        }
-      }
-      
-      // Set a new reference date
-      function setReferenceDate() {
-        const dateInput = document.getElementById('referenceDate');
-        const dateStr = dateInput.value;
-        
-        // Show loading spinner and clear previous status
-        document.getElementById('dateLoading').style.display = 'inline';
-        document.getElementById('dateStatus').textContent = '';
-        
-        // Validate date format (YYYY-MM-DD)
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          document.getElementById('dateLoading').style.display = 'none';
-          document.getElementById('dateStatus').textContent = '유효하지 않은 날짜 형식입니다. YYYY-MM-DD 형식을 사용하세요.';
-          return;
-        }
-        
-        // Call the server-side function
-        google.script.run
-          .withSuccessHandler(function(result) {
-            document.getElementById('dateLoading').style.display = 'none';
-            if (result.success) {
-              document.getElementById('dateStatus').textContent = result.message;
-              document.getElementById('dateStatus').className = 'success';
-              // Update the input with the properly formatted date
-              document.getElementById('referenceDate').value = result.date;
-            } else {
-              document.getElementById('dateStatus').textContent = result.message;
-              document.getElementById('dateStatus').className = 'error';
-            }
-          })
-          .withFailureHandler(function(error) {
-            document.getElementById('dateLoading').style.display = 'none';
-            document.getElementById('dateStatus').textContent = '날짜를 설정하는 중 오류가 발생했습니다: ' + error.message;
-            document.getElementById('dateStatus').className = 'error';
-          })
-          .setReferenceDate(dateStr);
-      }
     </script>
   </body>
 </html> 

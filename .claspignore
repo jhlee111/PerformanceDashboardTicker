@@ -1,0 +1,10 @@
+**/__tests__/**
+**/node_modules/**
+.git/**
+.github/**
+.vscode/**
+*.test.js
+*.spec.js
+vitest.config.js
+package.json
+yarn.lock 

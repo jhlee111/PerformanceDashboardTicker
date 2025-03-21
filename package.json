@@ -1,0 +1,21 @@
+{
+  "name": "PerformanceDashboardTicker",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "jhlee111 <jhlee111@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/google-apps-script": "^1.0.97"
+  },
+  "devDependencies": {
+    "@vitest/ui": "^3.0.9",
+    "jsdom": "^26.0.0",
+    "playwright": "^1.51.1",
+    "vitest": "^3.0.9"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  }
+}
